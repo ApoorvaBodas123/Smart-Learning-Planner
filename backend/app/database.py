@@ -8,16 +8,9 @@ load_dotenv(dotenv_path="./.env")
 
 SQlALCHEMY_DATABASE_URL=os.getenv("DATABASE_URL")
 
-if SQlALCHEMY_DATABASE_URL is None:
-    print("No url found")
-else:
-    print("url found")
-
 engine=create_engine(
     SQlALCHEMY_DATABASE_URL
 )
-
-\
 
 SessionLocal= sessionmaker(autocommit=False,autoflush=False, bind=engine)
 
