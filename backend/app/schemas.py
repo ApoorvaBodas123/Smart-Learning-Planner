@@ -21,13 +21,29 @@ class SubjectBase(BaseModel):
     name:str
     difficulty:int
 
-class SubjectCreate(BaseModel):
-    pass 
+class SubjectCreate(SubjectBase):
+    pass
 
 class SubjectResponse(SubjectBase):
-    id:int
-    user_id:int
+    id: int
+    user_id: int
+    tasks: list['TaskResponse'] = []
+
     model_config = ConfigDict(from_attributes=True)
 
-    
 
+class TaskBase(BaseModel):
+    title: str
+    description: str | None = None
+    estimated_hours: int
+    due_date: str | None = None
+
+class TaskCreate(TaskBase):
+    pass
+
+class TaskResponse(TaskBase):
+    id: int
+    is_completed: bool
+    subject_id: int
+
+    model_config = ConfigDict(from_attributes=True)
