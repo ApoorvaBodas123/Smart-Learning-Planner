@@ -55,15 +55,15 @@ export const CalendarView = ({ userId }: { userId: number }) => {
       </div>
 
       <div className="card p-0 overflow-hidden border-none shadow-xl">
-        <div className="grid grid-cols-7 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-700">
+        <div className="grid grid-cols-7 bg-muted border-b border-border">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-4 text-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <div key={day} className="py-4 text-center text-[10px] font-black text-muted-foreground uppercase tracking-widest">
               {day}
             </div>
           ))}
         </div>
 
-        <div className="grid grid-cols-7">
+        <div className="grid grid-cols-7 border-l border-t border-border">
           {calendarDays.map((day, i) => {
             const dayTasks = tasks.filter(t => isSameDay(new Date(t.due_date), day))
             const isCurrentMonth = isSameMonth(day, monthStart)
@@ -72,14 +72,14 @@ export const CalendarView = ({ userId }: { userId: number }) => {
             return (
               <div 
                 key={i} 
-                className={`min-h-[120px] p-2 border-r border-b border-slate-100 dark:border-slate-800 transition-colors ${
-                  !isCurrentMonth ? 'bg-slate-50/50 dark:bg-slate-900/30' : 'bg-white dark:bg-slate-900'
-                } ${isToday ? 'bg-indigo-50/30 dark:bg-indigo-900/10' : ''}`}
+                className={`min-h-[120px] p-2 border-r border-b border-border transition-colors ${
+                  !isCurrentMonth ? 'bg-muted/30 opacity-60' : 'bg-card'
+                } ${isToday ? 'bg-primary/5' : ''}`}
               >
                 <div className="flex justify-between items-center mb-2">
                   <span className={`text-xs font-bold ${
                     isToday ? 'bg-primary text-white w-6 h-6 flex items-center justify-center rounded-full' : 
-                    isCurrentMonth ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300 dark:text-slate-600'
+                    isCurrentMonth ? 'text-foreground' : 'text-muted-foreground/40'
                   }`}>
                     {format(day, 'd')}
                   </span>
@@ -91,7 +91,7 @@ export const CalendarView = ({ userId }: { userId: number }) => {
                       initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
                       key={idx} 
-                      className="px-2 py-1 bg-primary/10 dark:bg-primary/20 border-l-2 border-primary rounded text-[9px] font-bold text-primary truncate cursor-default"
+                      className="px-2 py-1 bg-primary/10 border-l-2 border-primary rounded text-[9px] font-bold text-primary truncate cursor-default"
                       title={task.title}
                     >
                       {task.title}

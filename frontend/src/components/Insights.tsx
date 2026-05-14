@@ -35,32 +35,32 @@ export const Insights = ({ userId }: { userId: number }) => {
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="card flex items-center gap-6">
-           <div className="p-4 bg-indigo-50 rounded-2xl">
+           <div className="p-4 bg-primary/10 rounded-2xl">
               <TrendingUp className="text-primary" size={32} />
            </div>
            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Mastery Level</p>
-              <h3 className="text-3xl font-black text-slate-800 dark:text-white">{data.completion_rate}%</h3>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Mastery Level</p>
+              <h3 className="text-3xl font-black text-foreground">{data.completion_rate}%</h3>
            </div>
         </motion.div>
 
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.1 }} className="card flex items-center gap-6">
-           <div className="p-4 bg-slate-100 rounded-2xl">
-              <Award className="text-slate-600" size={32} />
+           <div className="p-4 bg-muted rounded-2xl">
+              <Award className="text-muted-foreground" size={32} />
            </div>
            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Current Streak</p>
-              <h3 className="text-3xl font-black text-slate-800 dark:text-white">{data.streak} Days</h3>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Current Streak</p>
+              <h3 className="text-3xl font-black text-foreground">{data.streak} Days</h3>
            </div>
         </motion.div>
 
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="card flex items-center gap-6">
-           <div className="p-4 bg-violet-50 rounded-2xl">
-              <CheckCircle className="text-violet-600" size={32} />
+           <div className="p-4 bg-primary/10 rounded-2xl">
+              <CheckCircle className="text-primary" size={32} />
            </div>
            <div>
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Tasks Done</p>
-              <h3 className="text-3xl font-black text-slate-800 dark:text-white">{data.total_completed}</h3>
+              <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">Tasks Done</p>
+              <h3 className="text-3xl font-black text-foreground">{data.total_completed}</h3>
            </div>
         </motion.div>
       </div>
@@ -90,26 +90,26 @@ export const Insights = ({ userId }: { userId: number }) => {
         </div>
 
         <div className="card">
-            <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-6">Roadmap Timeline</h3>
+            <h3 className="text-sm font-black text-muted-foreground uppercase tracking-widest mb-6">Roadmap Timeline</h3>
             <div className="space-y-4">
                {['May', 'June', 'July', 'August'].map((month, i) => (
                  <div key={month} className="flex items-center gap-4">
-                    <span className="text-[10px] font-black text-slate-400 w-12">{month}</span>
-                    <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                    <span className="text-[10px] font-black text-muted-foreground w-12">{month}</span>
+                    <div className="flex-1 h-3 bg-muted rounded-full overflow-hidden">
                        <motion.div 
                          initial={{ width: 0 }} 
                          animate={{ width: `${Math.max(10, 80 - i*20)}%` }} 
                          className="h-full bg-primary" 
                        />
                     </div>
-                    <span className="text-[10px] font-bold text-slate-500">{Math.max(2, 12 - i*3)} Tasks</span>
+                    <span className="text-[10px] font-bold text-muted-foreground">{Math.max(2, 12 - i*3)} Tasks</span>
                  </div>
                ))}
             </div>
-            <div className="mt-10 p-4 bg-indigo-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-indigo-200 dark:border-slate-700">
-               <p className="text-[10px] font-bold text-indigo-500 uppercase mb-2">Next Milestone</p>
-               <h4 className="font-bold text-slate-800 dark:text-white">Goal Completion</h4>
-               <p className="text-xs text-slate-400 mt-1">Keep pushing your streak!</p>
+            <div className="mt-10 p-5 bg-primary rounded-xl shadow-lg border border-primary/20">
+               <p className="text-[10px] font-black text-white/60 uppercase mb-2 tracking-widest">Next Milestone</p>
+               <h4 className="font-bold text-white text-lg leading-tight">Goal Completion</h4>
+               <p className="text-xs text-white/70 mt-1 italic">Keep pushing your streak!</p>
             </div>
         </div>
       </div>

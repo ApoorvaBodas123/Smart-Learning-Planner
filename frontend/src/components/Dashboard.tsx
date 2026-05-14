@@ -35,7 +35,7 @@ export const Dashboard = ({ user, onLogout }: DashboardProps) => {
     <div className="app-container">
       <aside className="sidebar">
         <div className="flex items-center gap-3 px-8 mb-12">
-          <span className="text-slate-900 dark:text-white font-black tracking-tighter text-2xl uppercase">ROADMINT</span>
+          <span className="text-foreground font-black tracking-tighter text-2xl uppercase">ROADMINT</span>
         </div>
 
         <nav className="flex flex-col w-full px-2">
@@ -72,7 +72,7 @@ export const Dashboard = ({ user, onLogout }: DashboardProps) => {
         <div className="mt-auto w-full px-4 mb-8 space-y-2">
           <div
             onClick={toggleTheme}
-            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-primary/20"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-secondary text-secondary-foreground cursor-pointer hover:opacity-80 transition-all border border-transparent hover:border-primary/20"
           >
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
             <span className="text-xs font-bold tracking-tight uppercase">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
@@ -91,13 +91,13 @@ export const Dashboard = ({ user, onLogout }: DashboardProps) => {
       <main className="main-content">
         <header className="flex justify-between items-center mb-12">
           <div className="flex flex-col">
-            <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-4xl font-black text-foreground tracking-tight">
               {activeTab === 'schedule' && format(new Date(), 'EEEE, MMMM d')}
               {activeTab === 'roadmap' && 'AI Roadmaps'}
               {activeTab === 'insights' && 'Analytics'}
-              {activeTab === 'calendar' && 'Schedule Overview'}
+              {activeTab === 'calendar' && 'Mastery Calendar'}
             </h1>
-            <p className="text-slate-500 font-semibold mt-1">
+            <p className="text-muted-foreground font-semibold mt-1">
               {activeTab === 'schedule' && `Welcome back, ${user.username}.`}
               {activeTab === 'roadmap' && "Generate personalized learning paths."}
               {activeTab === 'insights' && "Visualize your learning trends."}
@@ -110,7 +110,7 @@ export const Dashboard = ({ user, onLogout }: DashboardProps) => {
               <img src={`https://ui-avatars.com/api/?name=${user.username}&background=4f46e5&color=fff`} alt="User" />
             </div>
             <div className="hidden md:block">
-              <p className="text-sm font-bold text-slate-900 dark:text-white">{user.username}</p>
+              <p className="text-sm font-bold text-foreground">{user.username}</p>
             </div>
           </div>
         </header>
