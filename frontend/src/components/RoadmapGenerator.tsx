@@ -28,7 +28,7 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
     if (!prompt) return
     setLoading(true)
     try {
-      await axios.post(`http://127.0.0.1:8000/generate-roadmap/`, { 
+      await axios.post(`${API_URL}/generate-roadmap/`, { 
         prompt, 
         duration_months: parseInt(duration),
         level
@@ -51,7 +51,7 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
   const deleteRoadmap = async (id: number) => {
     if (!window.confirm("Are you sure you want to delete this roadmap and all its tasks?")) return
     try {
-      await axios.delete(`http://127.0.0.1:8000/roadmaps/${id}`)
+      await axios.delete(`${API_URL}/roadmaps/${id}`)
       fetchRoadmaps()
     } catch (err) { console.error(err) }
   }
