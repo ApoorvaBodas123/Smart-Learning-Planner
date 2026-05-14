@@ -1,186 +1,343 @@
 import os
+import json
 from dotenv import load_dotenv 
 load_dotenv() 
 
-from fastapi import Depends,FastAPI,HTTPException
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-from .database import engine,get_db
-from .import models,schemas
+from .database import engine, get_db
+from . import models, schemas, auth_utils
 from fastapi.middleware.cors import CORSMiddleware
+from datetime import datetime, timedelta
+from groq import Groq
+from sqlalchemy import func
+from jose import JWTError, jwt
+from youtubesearchpython import VideosSearch
+
 models.Base.metadata.create_all(bind=engine)
 
-import google.generativeai as genai
-from datetime import datetime
-from groq import Groq
-
-app=FastAPI(title="Smart Learning Planner API")
+app = FastAPI(title="Smart Learning Planner API")
 
 app.add_middleware(CORSMiddleware,
-allow_origins=["*"],
-allow_credentials=True,
-allow_methods=["*"],
-allow_headers=["*"],
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
+
+groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, auth_utils.SECRET_KEY, algorithms=[auth_utils.ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+        
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user
+
 @app.get("/")
-
-
 def read_root():
-    return {"message":"Welcome to the Smart Learning Planner API!"}
+    return {"message": "Welcome to the Secure Smart Learning Planner API!"}
 
-@app.post("/users/",response_model=schemas.UserResponse)
-
-
-def create_user(user:schemas.UserCreate, db:Session=Depends(get_db)):
-
+@app.post("/users/", response_model=schemas.UserResponse)
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    existing_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
     db_user = models.User(
         username=user.username,
         email=user.email,
-        hashed_password=user.password)
-    print("🚀 BACKEND RECEIVED A REQUEST!")
-    print(f"📦 Data from Axios: {user}")
-    print(f"👤 Creating user: {user.username} with email: {user.email}")
-    # ---------
-
+        hashed_password=auth_utils.get_password_hash(user.password)
+    )
     db.add(db_user)
-
     db.commit()
-
     db.refresh(db_user)
-
     return db_user
 
 @app.post("/login/")
 def login_user(user: schemas.UserLogin, db: Session = Depends(get_db)):
-    
     db_user = db.query(models.User).filter(models.User.email == user.email).first()
+    if not db_user or not auth_utils.verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     
-    
-    if not db_user or db_user.hashed_password != user.password:
-        raise HTTPException(status_code=401, detail="Invalid email or password")
-    
-    print(f"🔑 USER LOGGED IN: {db_user.username}")
-    return {"message": "Login successful", "user": db_user}
+    access_token = auth_utils.create_access_token(data={"sub": db_user.email})
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "id": db_user.id,
+            "username": db_user.username,
+            "email": db_user.email
+        }
+    }
 
-# Add these endpoints to main.py
+@app.post("/generate-roadmap/")
+def generate_roadmap(
+    input_data: schemas.RoadmapInput, 
+    current_user: models.User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    prompt = f"""
+    Create a highly professional and structured learning roadmap for: "{input_data.prompt}"
+    The user's current level is: "{input_data.level}"
+    The desired duration is: {input_data.duration_months} months.
+
+    For each task, provide a highly specific 'search_query' that includes:
+    1. The core technology or concept.
+    2. The specific sub-topic (e.g., 'hooks' for React).
+    3. The keywords 'full course' or 'tutorial series' or 'hands-on project'.
+
+    Return ONLY a JSON object with this structure:
+    {{
+      "goal": "string",
+      "duration_months": {input_data.duration_months},
+      "subjects": [
+        {{
+          "name": "string",
+          "difficulty": 1-5,
+          "tasks": [
+            {{
+              "title": "string",
+              "estimated_hours": float,
+              "search_query": "string (the absolute best search term to find a comprehensive, high-quality tutorial on YouTube)",
+              "resource_type": "Video Course | Hands-on Project | Documentation",
+              "reasoning": "string (briefly explain why this search/tutorial is the best starting point)"
+            }}
+          ]
+        }}
+      ]
+    }}
+    """
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            response_format={"type": "json_object"}
+        )
+        roadmap_data = json.loads(completion.choices[0].message.content)
+        target_date = (datetime.now() + timedelta(days=roadmap_data.get('duration_months', 3) * 30)).strftime("%Y-%m-%d")
+        
+        db_roadmap = models.Roadmap(user_id=current_user.id, goal=roadmap_data['goal'], target_completion_date=target_date)
+        db.add(db_roadmap)
+        db.commit()
+        db.refresh(db_roadmap)
+        
+        for sub_data in roadmap_data['subjects']:
+            db_sub = models.Subject(name=sub_data['name'], difficulty=sub_data['difficulty'], user_id=current_user.id, roadmap_id=db_roadmap.id)
+            db.add(db_sub)
+            db.commit()
+            db.refresh(db_sub)
+            for task_data in sub_data['tasks']:
+                # AUTOMATED DIRECT LINK SEARCH
+                try:
+                    query = f"{task_data['search_query']} {task_data.get('resource_type', 'tutorial')}"
+                    videos_search = VideosSearch(query, limit=1)
+                    results = videos_search.result()
+                    
+                    if results['result']:
+                        direct_url = results['result'][0]['link']
+                    else:
+                        direct_url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
+                except Exception as e:
+                    print(f"SEARCH ERROR: {e}")
+                    direct_url = f"https://www.youtube.com/results?search_query={task_data['search_query'].replace(' ', '+')}"
+
+                db_task = models.Task(
+                    title=task_data['title'], 
+                    description=task_data.get('reasoning', ''),
+                    estimated_hours=task_data['estimated_hours'], 
+                    resource_url=direct_url, 
+                    subject_id=db_sub.id, 
+                    due_date=target_date
+                )
+                db.add(db_task)
+        db.commit()
+        return {"message": "Roadmap generated", "roadmap_id": db_roadmap.id}
+    except Exception as e:
+        print(f"ROADMAP ERROR: {e}")
+        raise HTTPException(status_code=500, detail=f"Roadmap generation failed: {str(e)}")
+
+@app.get("/analytics/")
+def get_analytics(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    subjects = db.query(models.Subject).filter(models.Subject.user_id == current_user.id).all()
+    subject_ids = [s.id for s in subjects]
+    
+    total_tasks = db.query(models.Task).filter(models.Task.subject_id.in_(subject_ids)).count() if subject_ids else 0
+    completed_tasks = db.query(models.Task).filter(models.Task.subject_id.in_(subject_ids), models.Task.is_completed == True).count() if subject_ids else 0
+    
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    history = db.query(
+        func.date(models.Task.completed_at).label('day'),
+        func.count(models.Task.id).label('count')
+    ).filter(
+        models.Task.subject_id.in_(subject_ids),
+        models.Task.completed_at >= seven_days_ago
+    ).group_by(func.date(models.Task.completed_at)).all() if subject_ids else []
+    
+    completed_days = db.query(func.date(models.Task.completed_at)).join(models.Subject).filter(
+        models.Subject.user_id == current_user.id,
+        models.Task.is_completed == True
+    ).distinct().order_by(func.date(models.Task.completed_at).desc()).all()
+    
+    streak = 0
+    if completed_days:
+        current_date = datetime.now().date()
+        last_completed = completed_days[0][0]
+
+        if last_completed >= current_date - timedelta(days=1):
+            streak = 0
+            expected = last_completed
+            for day_row in completed_days:
+                if day_row[0] == expected:
+                    streak += 1
+                    expected -= timedelta(days=1)
+                else:
+                    break
+    
+    return {
+        "completion_rate": round((completed_tasks / total_tasks * 100), 1) if total_tasks > 0 else 0,
+        "total_completed": completed_tasks,
+        "daily_history": [{"day": str(h.day), "tasks": h.count} for h in history],
+        "streak": streak
+    }
+
+@app.get("/schedule/")
+def generate_schedule(roadmap_id: int | None = None, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    
+    base_filter = [models.Subject.user_id == current_user.id, models.Task.is_completed == False]
+    if roadmap_id:
+        base_filter.append(models.Subject.roadmap_id == roadmap_id)
+
+    overdue_tasks = db.query(models.Task).join(models.Subject).filter(
+        *base_filter,
+        models.Task.due_date < today_str
+    ).all()
+    
+    for task in overdue_tasks:
+        task.due_date = today_str
+    db.commit()
+
+    
+    query = db.query(
+        models.Task, 
+        models.Subject.name.label("subject_name"), 
+        models.Subject.difficulty,
+        models.Roadmap.goal.label("roadmap_goal")
+    ).join(models.Subject, models.Task.subject_id == models.Subject.id)\
+     .join(models.Roadmap, models.Subject.roadmap_id == models.Roadmap.id)\
+     .filter(*base_filter)
+    
+    results = query.all()
+    all_tasks = []
+    for t, sub_name, diff, goal in results:
+        all_tasks.append({
+            "id": t.id, 
+            "title": t.title, 
+            "description": t.description,
+            "subject": sub_name, 
+            "difficulty": diff,
+            "goal": goal,
+            "hours": t.estimated_hours, 
+            "due_date": t.due_date, 
+            "resource_url": t.resource_url
+        })
+    
+    sorted_tasks = sorted(all_tasks, key=lambda x: (x['due_date'] != today_str, -x['difficulty']))
+    pomodoro_plan = [{**t, "pomodoro_chunks": max(1, int((t['hours'] * 60) // 25))} for t in sorted_tasks[:6]]
+    
+    return {
+        "today_focus": pomodoro_plan, 
+        "total_estimated_time": round(sum(t['hours'] for t in sorted_tasks), 1),
+        "ai_tip": "Focus on your mastery!"
+    }
+
+@app.get("/ai-analysis/")
+def get_ai_analysis(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    subjects = db.query(models.Subject).filter(models.Subject.user_id == current_user.id).all()
+    sub_names = [s.name for s in subjects]
+    
+    prompt = f"Give a 1-sentence productivity tip for a student studying: {', '.join(sub_names)}"
+    try:
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return {"analysis": completion.choices[0].message.content}
+    except:
+        return {"analysis": "Consistency is your greatest superpower. Keep pushing!"}
+
+@app.get("/roadmaps/", response_model=list[schemas.RoadmapResponse])
+def get_roadmaps(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(models.Roadmap).filter(models.Roadmap.user_id == current_user.id).all()
+
+@app.delete("/roadmaps/{roadmap_id}")
+def delete_roadmap(roadmap_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_roadmap = db.query(models.Roadmap).filter(models.Roadmap.id == roadmap_id, models.Roadmap.user_id == current_user.id).first()
+    if not db_roadmap:
+        raise HTTPException(status_code=404, detail="Roadmap not found")
+    
+    subjects = db.query(models.Subject).filter(models.Subject.roadmap_id == roadmap_id).all()
+    for sub in subjects:
+        db.query(models.Task).filter(models.Task.subject_id == sub.id).delete()
+    db.query(models.Subject).filter(models.Subject.roadmap_id == roadmap_id).delete()
+    
+    db.delete(db_roadmap)
+    db.commit()
+    return {"message": "Roadmap and associated tasks deleted"}
+
+@app.get("/subjects/", response_model=list[schemas.SubjectResponse])
+def get_subjects(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return db.query(models.Subject).filter(models.Subject.user_id == current_user.id).all()
 
 @app.post("/subjects/", response_model=schemas.SubjectResponse)
-def create_subject(subject: schemas.SubjectCreate, user_id: int, db: Session = Depends(get_db)):
-     db_subject = models.Subject(
-        name=subject.name, 
-        difficulty=subject.difficulty, 
-        user_id=user_id
-    )
+def create_subject(subject: schemas.SubjectCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+     db_subject = models.Subject(name=subject.name, difficulty=subject.difficulty, user_id=current_user.id, roadmap_id=subject.roadmap_id)
      db.add(db_subject)
      db.commit()
      db.refresh(db_subject)
      return db_subject
 
-@app.get("/users/{user_id}/subjects/", response_model=list[schemas.SubjectResponse])
-def get_subjects(user_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Subject).filter(models.Subject.user_id == user_id).all()
-
+@app.patch("/tasks/{task_id}/toggle")
+def toggle_task(task_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_task = db.query(models.Task).join(models.Subject).filter(models.Task.id == task_id, models.Subject.user_id == current_user.id).first()
+    if not db_task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    db_task.is_completed = not db_task.is_completed
+    db_task.completed_at = datetime.utcnow() if db_task.is_completed else None
+    db.commit()
+    db.refresh(db_task)
+    return db_task
 
 @app.post("/tasks/", response_model=schemas.TaskResponse)
-def create_task(task: schemas.TaskCreate, subject_id: int, db: Session = Depends(get_db)):
+def create_task(task: schemas.TaskCreate, subject_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    sub = db.query(models.Subject).filter(models.Subject.id == subject_id, models.Subject.user_id == current_user.id).first()
+    if not sub:
+        raise HTTPException(status_code=403, detail="Not authorized")
     db_task = models.Task(**task.model_dump(), subject_id=subject_id)
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
     return db_task
 
-@app.get("/subjects/{subject_id}/tasks/", response_model=list[schemas.TaskResponse])
-def get_tasks(subject_id: int, db: Session = Depends(get_db)):
-    return db.query(models.Task).filter(models.Task.subject_id == subject_id).all()
-
-
-# Configure Groq
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-@app.get("/users/{user_id}/schedule/")
-def generate_schedule(user_id: int, db: Session = Depends(get_db)):
-    subjects = db.query(models.Subject).filter(models.Subject.user_id == user_id).all()
-    
-    all_tasks = []
-    for sub in subjects:
-        tasks = db.query(models.Task).filter(models.Task.subject_id == sub.id, models.Task.is_completed == False).all()
-        for t in tasks:
-            all_tasks.append({
-                "id": t.id,
-                "title": t.title,
-                "subject": sub.name,
-                "difficulty": sub.difficulty,
-                "hours": t.estimated_hours,
-                "due_date": t.due_date
-            })
-
-    # 1. ENHANCED SORTING: Due Date (Closest) first, then Difficulty (Hardest)
-    def sort_key(task):
-        due = task['due_date'] if task['due_date'] else "9999-12-31"
-        return (due, -task['difficulty'])
-
-    sorted_tasks = sorted(all_tasks, key=sort_key)
-
-    # 2. POMODORO MODE: Split tasks into 25-min chunks
-    pomodoro_plan = []
-    for task in sorted_tasks[:5]:
-        chunks = (task['hours'] * 60) // 25
-        pomodoro_plan.append({
-            **task,
-            "pomodoro_chunks": max(1, int(chunks))
-        })
-
-    return {
-        "today_focus": pomodoro_plan, 
-        "total_estimated_time": sum(t['hours'] for t in sorted_tasks),
-        "ai_tip": "Focus on the tasks with the red deadline labels first!"
-    }
-
-
-@app.get("/users/{user_id}/ai-analysis/")
-def get_ai_analysis(user_id: int, db: Session = Depends(get_db)):
-    # Fetch tasks to analyze
-    subjects = db.query(models.Subject).filter(models.Subject.user_id == user_id).all()
-    task_titles = []
-    for sub in subjects:
-        tasks = db.query(models.Task).filter(models.Task.subject_id == sub.id).all()
-        task_titles.extend([f"{t.title} ({sub.name})" for t in tasks])
-
-    if not task_titles:
-        return {"analysis": "Add some tasks first so I can analyze them!"}
-
-    try:
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {
-                    "role": "user",
-                    "content": f"Here are my study tasks: {', '.join(task_titles)}. Can you group them by similarity and give me one 'Pro Study Tip' for this specific workload? Keep it brief and encouraging."
-                }
-            ],
-            temperature=0.7,
-            max_tokens=500,
-        )
-        return {"analysis": completion.choices[0].message.content}
-    except Exception as e:
-        print(f"❌ Groq Error: {str(e)}")
-        # Fallback logic if API fails
-        return {"analysis": f"AI Fallback: Focus on your {len(task_titles)} tasks one by one. Tip: Take a 5-min break every 25 mins!"}
-
-@app.patch("/tasks/{task_id}/toggle")
-def toggle_task(task_id: int, db: Session = Depends(get_db)):
-    db_task = db.query(models.Task).filter(models.Task.id == task_id).first()
-    if not db_task:
-        raise HTTPException(status_code=404, detail="Task not found")
-    
-    db_task.is_completed = not db_task.is_completed
-    db.commit()
-    db.refresh(db_task)
-    return db_task
-
 @app.delete("/subjects/{subject_id}")
-def delete_subject(subject_id: int, db: Session = Depends(get_db)):
-    db_subject = db.query(models.Subject).filter(models.Subject.id == subject_id).first()
+def delete_subject(subject_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_subject = db.query(models.Subject).filter(models.Subject.id == subject_id, models.Subject.user_id == current_user.id).first()
     if not db_subject:
         raise HTTPException(status_code=404, detail="Subject not found")
     db.delete(db_subject)

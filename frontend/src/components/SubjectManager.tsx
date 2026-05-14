@@ -22,7 +22,7 @@ export const SubjectManager = ({ userId }: { userId: number }) => {
 
     const fetchSubjects = async () => {
         try {
-            const res = await axios.get(`http://127.0.0.1:8000/users/${userId}/subjects/`)
+            const res = await axios.get(`http://127.0.0.1:8000/subjects/`)
             setSubjects(res.data)
         } catch (err) {
             console.error("Failed to fetch subjects", err)
@@ -32,7 +32,7 @@ export const SubjectManager = ({ userId }: { userId: number }) => {
     const handleAddSubject = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await axios.post(`http://127.0.0.1:8000/subjects/?user_id=${userId}`, {
+            await axios.post(`http://127.0.0.1:8000/subjects/`, {
                 name: newName,
                 difficulty: newDifficulty
             })

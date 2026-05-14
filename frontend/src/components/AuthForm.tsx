@@ -2,14 +2,13 @@ import { useState } from 'react'
 import axios from 'axios'
 import { UserPlus, Mail, Lock, User, LogIn } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { p } from 'framer-motion/client';
 
 interface AuthFormProps {
-  onLoginSuccess: (user: any) => void;
+  onLoginSuccess: (userData: any) => void;
 }
 
 export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
-  const [isLogin, setIsLogin] = useState(false)
+  const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({ username: '', email: '', password: '' })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
@@ -21,7 +20,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
       const response = await axios.post(`http://127.0.0.1:8000${endpoint}`, formData)
       
       if (isLogin) {
-        onLoginSuccess(response.data.user)
+        onLoginSuccess(response.data)
       } else {
         setStatus('success')
         setTimeout(() => { setIsLogin(true); setStatus('idle'); }, 2000)
@@ -34,24 +33,25 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
   return (
     <motion.div 
       layout 
-      className="card w-full max-w-md shadow-2xl p-10"
+      className="card w-full max-w-md p-10"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
     >
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-6">
-          <div className="w-8 h-8 bg-green-600 rounded-lg rotate-45 flex items-center justify-center">
-             <div className="w-4 h-4 bg-white/30 rounded-sm -rotate-45" />
-          </div>
-        </div>
-        <h1 className="text-3xl font-black text-slate-800 tracking-tight">{isLogin ? "Sign in" : "Create account"}</h1>
-        <p className="text-slate-500 text-sm mt-2 font-medium">Smart Learning Planner v1.0</p>
+      <div className="text-center mb-10">
+        <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">
+          {isLogin ? 'Sign in' : 'Create account'}
+        </h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <AnimatePresence mode="wait">
           {!isLogin && (
-            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
+            <motion.div 
+              key="username"
+              initial={{ opacity: 0, height: 0 }} 
+              animate={{ opacity: 1, height: 'auto' }} 
+              exit={{ opacity: 0, height: 0 }}
+            >
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Username</label>
               <div className="relative">
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
@@ -98,7 +98,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
         
         <p className="text-center text-sm font-bold text-slate-400 mt-6">
           {isLogin ? "New here?" : "Already have an account?"}
-          <button type="button" onClick={() => setIsLogin(!isLogin) } className="text-green-600 ml-2 hover:underline">
+          <button type="button" onClick={() => setIsLogin(!isLogin) } className="text-primary ml-2 hover:underline">
             {isLogin ? "Sign Up" : "Log In"}
           </button>
         </p>
@@ -112,4 +112,3 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
     </motion.div>
   )
 }
-  
