@@ -12,7 +12,6 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
 
   useEffect(() => {
     const initFetch = async () => {
-      setLoading(true)
       try {
         const [roadmapRes, scheduleRes] = await Promise.all([
           axios.get(`${API_URL}/roadmaps/`),
@@ -22,8 +21,6 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
         setSchedule(scheduleRes.data)
       } catch (err) {
         console.error(err)
-      } finally {
-        setLoading(false)
       }
     }
     initFetch()
@@ -36,12 +33,11 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
   }, [activeRoadmapId])
 
   const getSchedule = async (roadmapId: number | null) => {
-    setLoading(true)
     try {
       const url = roadmapId ? `${API_URL}/schedule/?roadmap_id=${roadmapId}` : `${API_URL}/schedule/`
       const res = await axios.get(url)
       setSchedule(res.data)
-    } catch (err) { console.error(err) } finally { setLoading(false) }
+    } catch (err) { console.error(err) }
   }
 
   const toggleTask = async (taskId: number) => {
