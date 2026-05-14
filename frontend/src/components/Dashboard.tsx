@@ -69,21 +69,21 @@ export const Dashboard = ({ user, onLogout }: DashboardProps) => {
           </div>
         </nav>
 
-        <div className="mt-auto w-full mb-8 space-y-1">
+        <div className="mt-auto w-full px-4 mb-8 space-y-2">
           <div
             onClick={toggleTheme}
-            className="nav-item mode-toggle-btn rounded-xl"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 cursor-pointer hover:bg-slate-200 dark:hover:bg-slate-800 transition-all border border-transparent hover:border-primary/20"
           >
-            {isDark ? <Sun size={18} className="mr-2" /> : <Moon size={18} className="mr-2" />}
-            <span className="tracking-tight font-bold">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            <span className="text-xs font-bold tracking-tight uppercase">{isDark ? 'Light Mode' : 'Dark Mode'}</span>
           </div>
 
           <div
             onClick={onLogout}
-            className="nav-item hover:text-red-500"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 cursor-pointer hover:text-red-500 transition-all"
           >
-            <LogOut size={18} className="mr-2" />
-            <span className="tracking-tight">Logout</span>
+            <LogOut size={16} />
+            <span className="text-xs font-bold tracking-tight uppercase">Logout</span>
           </div>
         </div>
       </aside>

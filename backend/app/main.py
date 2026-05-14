@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from groq import Groq
 from sqlalchemy import func
 from jose import JWTError, jwt
-from youtubesearchpython import VideosSearch
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -97,11 +96,6 @@ def generate_roadmap(
     The user's current level is: "{input_data.level}"
     The desired duration is: {input_data.duration_months} months.
 
-    For each task, provide a highly specific 'search_query' that includes:
-    1. The core technology or concept.
-    2. The specific sub-topic (e.g., 'hooks' for React).
-    3. The keywords 'full course' or 'tutorial series' or 'hands-on project'.
-
     Return ONLY a JSON object with this structure:
     {{
       "goal": "string",
@@ -113,10 +107,9 @@ def generate_roadmap(
           "tasks": [
             {{
               "title": "string",
-              "estimated_hours": float,
-              "search_query": "string (the absolute best search term to find a comprehensive, high-quality tutorial on YouTube)",
-              "resource_type": "Video Course | Hands-on Project | Documentation",
-              "reasoning": "string (briefly explain why this search/tutorial is the best starting point)"
+              "day_number": int (MUST start from 1 and increment daily across the duration. Spread tasks across different days of the week),
+              "estimated_hours": float (max 4 hours per task; if a topic is longer, split it into multiple tasks on different days),
+              "description": "string (briefly explain what will be learned and why it is important in this sequence)"
             }}
           ]
         }}
@@ -143,30 +136,21 @@ def generate_roadmap(
             db.commit()
             db.refresh(db_sub)
             for task_data in sub_data['tasks']:
-                # AUTOMATED DIRECT LINK SEARCH
-                try:
-                    query = f"{task_data['search_query']} {task_data.get('resource_type', 'tutorial')}"
-                    videos_search = VideosSearch(query, limit=1)
-                    results = videos_search.result()
-                    
-                    if results['result']:
-                        direct_url = results['result'][0]['link']
-                    else:
-                        direct_url = f"https://www.youtube.com/results?search_query={query.replace(' ', '+')}"
-                except Exception as e:
-                    print(f"SEARCH ERROR: {e}")
-                    direct_url = f"https://www.youtube.com/results?search_query={task_data['search_query'].replace(' ', '+')}"
+                # SMART DAILY DISTRIBUTION
+                # Today + (Day Number days)
+                day_offset = task_data.get('day_number', 1)
+                task_due_date = (datetime.now() + timedelta(days=day_offset)).strftime("%Y-%m-%d")
 
                 db_task = models.Task(
                     title=task_data['title'], 
-                    description=task_data.get('reasoning', ''),
+                    description=task_data.get('description', ''),
                     estimated_hours=task_data['estimated_hours'], 
-                    resource_url=direct_url, 
+                    resource_url=None, 
                     subject_id=db_sub.id, 
-                    due_date=target_date
+                    due_date=task_due_date
                 )
                 db.add(db_task)
-        db.commit()
+            db.commit()
         return {"message": "Roadmap generated", "roadmap_id": db_roadmap.id}
     except Exception as e:
         print(f"ROADMAP ERROR: {e}")
@@ -258,13 +242,16 @@ def generate_schedule(roadmap_id: int | None = None, current_user: models.User =
             "resource_url": t.resource_url
         })
     
-    sorted_tasks = sorted(all_tasks, key=lambda x: (x['due_date'] != today_str, -x['difficulty']))
-    pomodoro_plan = [{**t, "pomodoro_chunks": max(1, int((t['hours'] * 60) // 25))} for t in sorted_tasks[:6]]
+    # CHRONOLOGICAL SORTING (Immediate tasks first)
+    sorted_tasks = sorted(all_tasks, key=lambda x: (x['due_date'], -x['difficulty']))
+    
+    # Show more tasks to ensure visibility of the current month
+    pomodoro_plan = [{**t, "pomodoro_chunks": max(1, int((t['hours'] * 60) // 25))} for t in sorted_tasks[:15]]
     
     return {
         "today_focus": pomodoro_plan, 
         "total_estimated_time": round(sum(t['hours'] for t in sorted_tasks), 1),
-        "ai_tip": "Focus on your mastery!"
+        "ai_tip": "Focus on your immediate milestones!"
     }
 
 @app.get("/ai-analysis/")
@@ -343,3 +330,23 @@ def delete_subject(subject_id: int, current_user: models.User = Depends(get_curr
     db.delete(db_subject)
     db.commit()
     return {"message": "Subject deleted"}
+@app.get("/all-tasks/")
+def get_all_tasks(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
+    tasks = db.query(
+        models.Task, 
+        models.Subject.name.label("subject_name"),
+        models.Roadmap.goal.label("roadmap_goal")
+    ).join(models.Subject, models.Task.subject_id == models.Subject.id)\
+     .join(models.Roadmap, models.Subject.roadmap_id == models.Roadmap.id)\
+     .filter(
+        models.Subject.user_id == current_user.id,
+        models.Task.is_completed == False
+    ).all()
+    
+    return [{
+        "id": t.id,
+        "title": t.title,
+        "due_date": t.due_date,
+        "subject": sub_name,
+        "goal": goal
+    } for t, sub_name, goal in tasks]

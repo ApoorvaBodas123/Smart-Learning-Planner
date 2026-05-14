@@ -15,9 +15,8 @@ export const CalendarView = ({ userId }: { userId: number }) => {
 
   const fetchTasks = async () => {
     try {
-      
-      const res = await axios.get(`http://127.0.0.1:8000/schedule/`)
-      setTasks(res.data.today_focus || [])
+      const res = await axios.get(`http://127.0.0.1:8000/all-tasks/`)
+      setTasks(res.data)
     } catch (err) {
       console.error(err)
     } finally {
@@ -92,7 +91,7 @@ export const CalendarView = ({ userId }: { userId: number }) => {
                       initial={{ opacity: 0, x: -5 }}
                       animate={{ opacity: 1, x: 0 }}
                       key={idx} 
-                      className="px-2 py-1 bg-indigo-100 dark:bg-indigo-900/40 border-l-2 border-primary rounded text-[9px] font-bold text-indigo-700 dark:text-indigo-300 truncate cursor-default"
+                      className="px-2 py-1 bg-primary/10 dark:bg-primary/20 border-l-2 border-primary rounded text-[9px] font-bold text-primary truncate cursor-default"
                       title={task.title}
                     >
                       {task.title}
