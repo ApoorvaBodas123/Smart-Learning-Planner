@@ -20,8 +20,6 @@ export const CalendarView = ({ userId: _userId }: { userId: number }) => {
       setTasks(res.data)
     } catch (err) {
       console.error(err)
-    } finally {
-      setLoading(false)
     }
   }
 
