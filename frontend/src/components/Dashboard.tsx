@@ -1,17 +1,13 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import {
   Calendar,
-  Link as LinkIcon,
   Activity,
   Sun,
   Moon,
-  Settings,
-  HelpCircle,
   LogOut,
   Map
 } from 'lucide-react'
 import { format } from 'date-fns'
-import { SubjectManager } from './SubjectManager'
 import { SmartSchedule } from './SmartSchedule'
 import { RoadmapGenerator } from './RoadmapGenerator'
 import { Insights } from './Insights'

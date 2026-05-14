@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import axios from 'axios'
-import { UserPlus, Mail, Lock, User, LogIn } from 'lucide-react'
+import { Mail, Lock, User } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 interface AuthFormProps {

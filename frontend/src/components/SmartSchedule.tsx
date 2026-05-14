@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Clock, RefreshCcw, ExternalLink, TrendingUp } from 'lucide-react'
+import { Clock, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-export const SmartSchedule = ({ userId }: { userId: number }) => {
+export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
   const [schedule, setSchedule] = useState<any>(null)
-  const [loading, setLoading] = useState(false)
   const [roadmaps, setRoadmaps] = useState<any[]>([])
   const [activeRoadmapId, setActiveRoadmapId] = useState<number | null>(null)
 

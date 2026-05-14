@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import axios from 'axios'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 
-export const CalendarView = ({ userId }: { userId: number }) => {
+export const CalendarView = ({ userId: _userId }: { userId: number }) => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [tasks, setTasks] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchTasks()

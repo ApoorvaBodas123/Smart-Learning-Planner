@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Sparkles, Loader2, CheckCircle, Trash2, HelpCircle } from 'lucide-react'
 
-export const RoadmapGenerator = ({ userId, onGenerated }: { userId: number, onGenerated: () => void }) => {
+export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: number, onGenerated: () => void }) => {
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState('4')
   const [level, setLevel] = useState('Beginner')

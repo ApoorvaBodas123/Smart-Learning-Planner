@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Plus, BookOpen, Trash2, Layout } from 'lucide-react'
+import { Plus, Trash2, BookOpen } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { TaskManager } from './TaskManager'
 interface Subject {
@@ -10,7 +10,7 @@ interface Subject {
     tasks?: any[]; // Add this
 }
 
-export const SubjectManager = ({ userId }: { userId: number }) => {
+export const SubjectManager = ({ userId: _userId }: { userId: number }) => {
     const [subjects, setSubjects] = useState<Subject[]>([])
     const [newName, setNewName] = useState('')
     const [newDifficulty, setNewDifficulty] = useState(3)
