@@ -10,6 +10,8 @@ interface Subject {
     tasks?: any[]; // Add this
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const SubjectManager = ({ userId: _userId }: { userId: number }) => {
     const [subjects, setSubjects] = useState<Subject[]>([])
     const [newName, setNewName] = useState('')
@@ -22,7 +24,7 @@ export const SubjectManager = ({ userId: _userId }: { userId: number }) => {
 
     const fetchSubjects = async () => {
         try {
-            const res = await axios.get(`http://127.0.0.1:8000/subjects/`)
+            const res = await axios.get(`${API_URL}/subjects/`)
             setSubjects(res.data)
         } catch (err) {
             console.error("Failed to fetch subjects", err)
@@ -32,7 +34,7 @@ export const SubjectManager = ({ userId: _userId }: { userId: number }) => {
     const handleAddSubject = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            await axios.post(`http://127.0.0.1:8000/subjects/`, {
+            await axios.post(`${API_URL}/subjects/`, {
                 name: newName,
                 difficulty: newDifficulty
             })
@@ -107,7 +109,7 @@ export const SubjectManager = ({ userId: _userId }: { userId: number }) => {
                                                     <button 
                                                         onClick={async () => {
                                                             if(window.confirm("Delete this subject?")) {
-                                                                await axios.delete(`http://127.0.0.1:8000/subjects/${sub.id}`);
+                                                                await axios.delete(`${API_URL}/subjects/${sub.id}`);
                                                                 fetchSubjects();
                                                             }
                                                         }}

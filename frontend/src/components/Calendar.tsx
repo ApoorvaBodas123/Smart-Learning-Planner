@@ -4,6 +4,8 @@ import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInte
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const CalendarView = ({ userId: _userId }: { userId: number }) => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [tasks, setTasks] = useState<any[]>([])
@@ -14,7 +16,7 @@ export const CalendarView = ({ userId: _userId }: { userId: number }) => {
 
   const fetchTasks = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/all-tasks/`)
+      const res = await axios.get(`${API_URL}/all-tasks/`)
       setTasks(res.data)
     } catch (err) {
       console.error(err)

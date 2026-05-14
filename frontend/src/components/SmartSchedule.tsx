@@ -3,6 +3,8 @@ import axios from 'axios'
 import { Clock, TrendingUp } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
   const [schedule, setSchedule] = useState<any>(null)
   const [roadmaps, setRoadmaps] = useState<any[]>([])
@@ -13,8 +15,8 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
       setLoading(true)
       try {
         const [roadmapRes, scheduleRes] = await Promise.all([
-          axios.get(`http://127.0.0.1:8000/roadmaps/`),
-          axios.get(`http://127.0.0.1:8000/schedule/`)
+          axios.get(`${API_URL}/roadmaps/`),
+          axios.get(`${API_URL}/schedule/`)
         ])
         setRoadmaps(roadmapRes.data)
         setSchedule(scheduleRes.data)
@@ -36,7 +38,7 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
   const getSchedule = async (roadmapId: number | null) => {
     setLoading(true)
     try {
-      const url = roadmapId ? `http://127.0.0.1:8000/schedule/?roadmap_id=${roadmapId}` : `http://127.0.0.1:8000/schedule/`
+      const url = roadmapId ? `${API_URL}/schedule/?roadmap_id=${roadmapId}` : `${API_URL}/schedule/`
       const res = await axios.get(url)
       setSchedule(res.data)
     } catch (err) { console.error(err) } finally { setLoading(false) }
@@ -44,7 +46,7 @@ export const SmartSchedule = ({ userId: _userId }: { userId: number }) => {
 
   const toggleTask = async (taskId: number) => {
     try {
-      await axios.patch(`http://127.0.0.1:8000/tasks/${taskId}/toggle`)
+      await axios.patch(`${API_URL}/tasks/${taskId}/toggle`)
       getSchedule(activeRoadmapId)
     } catch (err) { console.error(err) }
   }

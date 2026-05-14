@@ -15,6 +15,8 @@ interface TaskManagerProps {
   onTaskUpdate: () => void;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const TaskManager = ({ subjectId, onTaskUpdate }: TaskManagerProps) => {
   const [tasks, setTasks] = useState<Task[]>([])
   const [newTitle, setNewTitle] = useState('')
@@ -27,7 +29,7 @@ export const TaskManager = ({ subjectId, onTaskUpdate }: TaskManagerProps) => {
 
   const fetchTasks = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/subjects/${subjectId}/tasks/`)
+      const res = await axios.get(`${API_URL}/subjects/${subjectId}/tasks/`)
       setTasks(res.data)
     } catch (err) {
       console.error("Failed to fetch tasks", err)
@@ -38,7 +40,7 @@ export const TaskManager = ({ subjectId, onTaskUpdate }: TaskManagerProps) => {
     e.preventDefault()
     if (!newTitle) return
     try {
-      await axios.post(`http://127.0.0.1:8000/tasks/?subject_id=${subjectId}`, {
+      await axios.post(`${API_URL}/tasks/?subject_id=${subjectId}`, {
         title: newTitle,
         estimated_hours: newHours,
         due_date: newDueDate
@@ -54,7 +56,7 @@ export const TaskManager = ({ subjectId, onTaskUpdate }: TaskManagerProps) => {
 
   const toggleTask = async (taskId: number) => {
     try {
-      await axios.patch(`http://127.0.0.1:8000/tasks/${taskId}/toggle`)
+      await axios.patch(`${API_URL}/tasks/${taskId}/toggle`)
       fetchTasks()
       onTaskUpdate()
     } catch (err) {

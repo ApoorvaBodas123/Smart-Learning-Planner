@@ -7,6 +7,8 @@ interface AuthFormProps {
   onLoginSuccess: (userData: any) => void;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
   const [isLogin, setIsLogin] = useState(true)
   const [formData, setFormData] = useState({ username: '', email: '', password: '' })
@@ -17,7 +19,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
     setStatus('loading')
     try {
       const endpoint = isLogin ? '/login/' : '/users/'
-      const response = await axios.post(`http://127.0.0.1:8000${endpoint}`, formData)
+      const response = await axios.post(`${API_URL}${endpoint}`, formData)
       
       if (isLogin) {
         onLoginSuccess(response.data)

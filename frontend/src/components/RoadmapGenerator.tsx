@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Sparkles, Loader2, CheckCircle, Trash2, HelpCircle } from 'lucide-react'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: number, onGenerated: () => void }) => {
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState('4')
@@ -16,7 +18,7 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
 
   const fetchRoadmaps = async () => {
     try {
-      const res = await axios.get(`http://127.0.0.1:8000/roadmaps/`)
+      const res = await axios.get(`${API_URL}/roadmaps/`)
       setRoadmaps(res.data)
     } catch (err) { console.error(err) }
   }

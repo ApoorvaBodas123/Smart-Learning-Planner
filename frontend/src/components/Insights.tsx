@@ -4,6 +4,8 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, A
 import { TrendingUp, Award, CheckCircle, Loader2 } from 'lucide-react'
 import { motion } from 'framer-motion'
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'
+
 export const Insights = ({ userId }: { userId: number }) => {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -11,7 +13,7 @@ export const Insights = ({ userId }: { userId: number }) => {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await axios.get(`http://127.0.0.1:8000/analytics/`)
+        const res = await axios.get(`${API_URL}/analytics/`)
         setData(res.data)
       } catch (err) {
         console.error(err)
