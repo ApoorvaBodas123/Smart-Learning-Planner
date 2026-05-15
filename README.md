@@ -1,4 +1,4 @@
-# Roadmint Zenith - AI Mastery Planner 🛡️🚀
+# Roadmint 
 
 **Roadmint Zenith** is a high-performance, distraction-free SaaS platform designed for intensive skill mastery. It transforms broad learning goals into granular, actionable daily milestones using an intelligent scheduling algorithm and a premium, high-contrast design system.
 
