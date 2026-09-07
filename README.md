@@ -1,6 +1,6 @@
 # Roadmint 
 
-**Roadmint Zenith** is a high-performance, distraction-free SaaS platform designed for intensive skill mastery. It transforms broad learning goals into granular, actionable daily milestones using an intelligent scheduling algorithm and a premium, high-contrast design system.
+**Roadmint** is a high-performance, distraction-free SaaS platform designed for intensive skill mastery. It transforms broad learning goals into granular, actionable daily milestones using an intelligent scheduling algorithm and a premium, high-contrast design system.
 
 ## 🚀 Technical Highlights (Resume-Ready)
 - **Granular Scheduling Algorithm**: Developed a custom logic to distribute AI-generated topics into daily tasks with a 4-hour cap, preventing task clumping and ensuring a sustainable learning pace.

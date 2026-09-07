@@ -95,6 +95,7 @@ def generate_roadmap(
     Create a highly professional and structured learning roadmap for: "{input_data.prompt}"
     The user's current level is: "{input_data.level}"
     The desired duration is: {input_data.duration_months} months.
+    The user can dedicate exactly {input_data.daily_hours} hours per day to studying.
 
     Return ONLY a JSON object with this structure:
     {{
@@ -108,7 +109,7 @@ def generate_roadmap(
             {{
               "title": "string",
               "day_number": int (MUST start from 1 and increment daily across the duration. Spread tasks across different days of the week),
-              "estimated_hours": float (max 4 hours per task; if a topic is longer, split it into multiple tasks on different days),
+              "estimated_hours": float (max {input_data.daily_hours} hours per task; if a topic is longer, split it into multiple tasks on different days),
               "description": "string (briefly explain what will be learned and why it is important in this sequence)"
             }}
           ]
@@ -118,7 +119,7 @@ def generate_roadmap(
     """
     try:
         completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             messages=[{"role": "user", "content": prompt}],
             response_format={"type": "json_object"}
         )
@@ -215,7 +216,7 @@ def generate_schedule(roadmap_id: int | None = None, current_user: models.User =
     
     for task in overdue_tasks:
         task.due_date = today_str
-    db.commit()
+    db.commit() #on overdue tasks are added to next day's schedule, their due date is updated to today so that they are prioritized in the schedule
 
     
     query = db.query(
@@ -254,24 +255,9 @@ def generate_schedule(roadmap_id: int | None = None, current_user: models.User =
         "ai_tip": "Focus on your immediate milestones!"
     }
 
-@app.get("/ai-analysis/")
-def get_ai_analysis(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    subjects = db.query(models.Subject).filter(models.Subject.user_id == current_user.id).all()
-    sub_names = [s.name for s in subjects]
-    
-    prompt = f"Give a 1-sentence productivity tip for a student studying: {', '.join(sub_names)}"
-    try:
-        completion = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return {"analysis": completion.choices[0].message.content}
-    except:
-        return {"analysis": "Consistency is your greatest superpower. Keep pushing!"}
-
 @app.get("/roadmaps/", response_model=list[schemas.RoadmapResponse])
 def get_roadmaps(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(models.Roadmap).filter(models.Roadmap.user_id == current_user.id).all()
+    return db.query(models.Roadmap).filter(models.Roadmap.user_id == current_user.id).all()  #this one is called again after the roadmap is deleted to refresh the list of roadmaps in the schedule page
 
 @app.delete("/roadmaps/{roadmap_id}")
 def delete_roadmap(roadmap_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -286,19 +272,7 @@ def delete_roadmap(roadmap_id: int, current_user: models.User = Depends(get_curr
     
     db.delete(db_roadmap)
     db.commit()
-    return {"message": "Roadmap and associated tasks deleted"}
-
-@app.get("/subjects/", response_model=list[schemas.SubjectResponse])
-def get_subjects(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    return db.query(models.Subject).filter(models.Subject.user_id == current_user.id).all()
-
-@app.post("/subjects/", response_model=schemas.SubjectResponse)
-def create_subject(subject: schemas.SubjectCreate, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-     db_subject = models.Subject(name=subject.name, difficulty=subject.difficulty, user_id=current_user.id, roadmap_id=subject.roadmap_id)
-     db.add(db_subject)
-     db.commit()
-     db.refresh(db_subject)
-     return db_subject
+    return {"message": "Roadmap and associated tasks deleted"} #deleted roadmap and all associated subjects and tasks when called from scheulde page roadmap delete button
 
 @app.patch("/tasks/{task_id}/toggle")
 def toggle_task(task_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -309,27 +283,8 @@ def toggle_task(task_id: int, current_user: models.User = Depends(get_current_us
     db_task.completed_at = datetime.utcnow() if db_task.is_completed else None
     db.commit()
     db.refresh(db_task)
-    return db_task
-
-@app.post("/tasks/", response_model=schemas.TaskResponse)
-def create_task(task: schemas.TaskCreate, subject_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    sub = db.query(models.Subject).filter(models.Subject.id == subject_id, models.Subject.user_id == current_user.id).first()
-    if not sub:
-        raise HTTPException(status_code=403, detail="Not authorized")
-    db_task = models.Task(**task.model_dump(), subject_id=subject_id)
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
-
-@app.delete("/subjects/{subject_id}")
-def delete_subject(subject_id: int, current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
-    db_subject = db.query(models.Subject).filter(models.Subject.id == subject_id, models.Subject.user_id == current_user.id).first()
-    if not db_subject:
-        raise HTTPException(status_code=404, detail="Subject not found")
-    db.delete(db_subject)
-    db.commit()
-    return {"message": "Subject deleted"}
+    return db_task #this is called in schedule page to mark as completed
+   
 @app.get("/all-tasks/")
 def get_all_tasks(current_user: models.User = Depends(get_current_user), db: Session = Depends(get_db)):
     tasks = db.query(
@@ -349,4 +304,4 @@ def get_all_tasks(current_user: models.User = Depends(get_current_user), db: Ses
         "due_date": t.due_date,
         "subject": sub_name,
         "goal": goal
-    } for t, sub_name, goal in tasks]
+    } for t, sub_name, goal in tasks] #this is called in calendar page

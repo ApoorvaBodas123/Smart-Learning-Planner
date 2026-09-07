@@ -14,7 +14,8 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
   const [formData, setFormData] = useState({ username: '', email: '', password: '' })
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => 
+  {
     e.preventDefault()
     setStatus('loading')
     try {
@@ -59,7 +60,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
                 <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
                 <input 
                   type="text" required
-                  className="input-field with-icon"
+                  className="input-field with-icon text-center"
                   onChange={(e) => setFormData({...formData, username: e.target.value})}
                   placeholder="Your Name"
                 />
@@ -74,7 +75,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
             <input 
               type="email" required
-              className="input-field with-icon"
+              className="input-field with-icon text-center"
               onChange={(e) => setFormData({...formData, email: e.target.value})}
               placeholder="name@university.edu"
             />
@@ -87,7 +88,7 @@ export const AuthForm = ({ onLoginSuccess }: AuthFormProps) => {
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 z-10" />
             <input 
               type="password" required
-              className="input-field with-icon"
+              className="input-field with-icon text-center"
               onChange={(e) => setFormData({...formData, password: e.target.value})}
               placeholder="••••••••"
             />

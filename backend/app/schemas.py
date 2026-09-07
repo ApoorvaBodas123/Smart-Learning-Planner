@@ -60,6 +60,7 @@ class RoadmapResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class RoadmapInput(BaseModel):
-    prompt: str  # e.g. "Learn DSA in 3 months for placements"
+    prompt: str  
     duration_months: int = 3
     level: str = "Beginner"
+    daily_hours: float = 4.0

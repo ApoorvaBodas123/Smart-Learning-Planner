@@ -8,6 +8,7 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState('4')
   const [level, setLevel] = useState('Beginner')
+  const [dailyHours, setDailyHours] = useState('4')
   const [loading, setLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [roadmaps, setRoadmaps] = useState<any[]>([])
@@ -31,7 +32,8 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
       await axios.post(`${API_URL}/generate-roadmap/`, { 
         prompt, 
         duration_months: parseInt(duration),
-        level
+        level,
+        daily_hours: parseFloat(dailyHours)
       })
       setSuccess(true)
       setTimeout(() => {
@@ -78,7 +80,7 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
                <p className="text-[10px] text-muted-foreground mt-2">The more detail you provide, the more relevant your roadmap will be.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                <div>
                   <label className="block text-sm font-bold text-muted-foreground mb-2">Duration</label>
                   <select 
@@ -101,6 +103,22 @@ export const RoadmapGenerator = ({ userId: _userId, onGenerated }: { userId: num
                      <option value="Beginner">Beginner</option>
                      <option value="Intermediate">Intermediate</option>
                      <option value="Advanced">Advanced</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-bold text-muted-foreground mb-2">Daily Study Hours</label>
+                  <select 
+                    value={dailyHours} onChange={(e) => setDailyHours(e.target.value)}
+                    className="input-field appearance-none"
+                  >
+                     <option value="1">1 Hour</option>
+                     <option value="2">2 Hours</option>
+                     <option value="3">3 Hours</option>
+                     <option value="4">4 Hours</option>
+                     <option value="5">5 Hours</option>
+                     <option value="6">6 Hours</option>
+                     <option value="7">7 Hours</option>
+                     <option value="8">8 Hours</option>
                   </select>
                </div>
             </div>
